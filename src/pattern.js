@@ -17,7 +17,8 @@ R19: dec x6 (6)`;
 
 function sequence(source, previous, depth = 0) {
   if (depth > 5) throw Error('Repeat groups are nested too deeply.');
-  const s = source.toLowerCase().trim();
+  let s = source.toLowerCase().replace(/sc2inc\b/g,'inc').replace(/sc2tog\b/g,'dec').trim();
+  for (let n=0;n<5;n++) s=s.replace(/(\d+)\s*\(([^()]*)\)/g,'[$2] x$1');
   if (/^(?:sc\s+around|sc\s+in\s+each\s+(?:st|stitch))$/.test(s)) {
     if (!previous) throw Error('“sc around” needs a known previous round.');
     return Array(previous).fill('sc');
@@ -30,14 +31,14 @@ function sequence(source, previous, depth = 0) {
       for (; end < s.length && level; end++) { if (s[end] === open) level++; if (s[end] === close) level--; }
       if (level) throw Error('A repeat group is missing its closing bracket.');
       const inner = sequence(s.slice(i + 1, end - 1), previous, depth + 1);
-      const repeat = s.slice(end).match(/^\s*(?:x|×|repeat)\s*(\d+)(?:\s*times)?/);
+      const repeat = s.slice(end).match(/^\s*(?:[x×]|repeat)\s*(\d+)(?:\s*times)?/);
       if (!repeat) throw Error('Add a repeat count after the group, for example [sc, inc] x6.');
       const count = Number(repeat[1]);
       if (count > 500 || result.length + inner.length * count > 2000) throw Error('Round exceeds the 2,000 operation limit.');
       for (let n = 0; n < count; n++) result.push(...inner);
       i = end + repeat[0].length; continue;
     }
-    const match = s.slice(i).match(/^(?:(\d+)\s*)?(sc|inc|dec)\b(?:\s*(?:x|×)\s*(\d+))?/);
+    const match = s.slice(i).match(/^(?:(\d+)\s*)?(sc|inc|dec)\b(?:\s*[x×]\s*(\d+))?/);
     if (!match) throw Error(`Unsupported notation near “${s.slice(i, i + 22)}”. Use sc, inc, dec, or repeat groups.`);
     const count = Number(match[1] || match[3] || 1);
     if (count > 2000 || result.length + count > 2000) throw Error('Round exceeds the 2,000 operation limit.');
@@ -48,10 +49,13 @@ function sequence(source, previous, depth = 0) {
 }
 
 export function parsePattern(text) {
-  const rounds = [], issues = []; let previous = null;
+  const rounds = [], issues = []; let previous = null, roundColor = null;
   for (const [lineIndex, raw] of text.split('\n').entries()) {
-    const line = raw.split('#')[0].trim(); if (!line) continue;
-    const header = line.match(/^(?:r(?:ound)?\s*)?(\d+)(?:\s*[-–]\s*(\d+))?\s*[:.)]\s*(.*)$/i);
+    let line = raw.split('//')[0].trim();
+    line = line.replace(/col\[(#[0-9a-f]{6})\]\s*,?/ig,(_,hex)=>{roundColor=hex;return '';});
+    line = line.split('#')[0].trim(); if (!line) continue;
+    if (/^R0:\s*(mr|magic ring)\s*$/i.test(line) && !rounds.length) continue;
+    const header = line.match(/^(?:r(?:ound)?\s*)?(\d+)(?:\s*[-–]\s*r?\s*(\d+))?\s*[:.)]\s*(.*)$/i);
     if (!header) { issues.push({ message: `Line ${lineIndex + 1}: expected R1: instructions.`, severity: 'error' }); continue; }
     const start = Number(header[1]), end = Number(header[2] || start);
     if (end < start || end > 200 || start < 1) { issues.push({ message: `Line ${lineIndex + 1}: round numbers must be ascending, between 1 and 200.`, severity: 'error' }); continue; }
@@ -60,7 +64,7 @@ export function parsePattern(text) {
       const instruction = header[3], messages = [];
       const expected = instruction.match(/\((\d+)\)\s*$/); const declared = expected ? Number(expected[1]) : null;
       let body = instruction.replace(/\(\d+\)\s*$/, '').trim(), ops = [], count = null, consumed = null;
-      const magic = /\bmr\b|magic\s+ring/i.test(body);
+      const magic = /\bmr\b|magic\s+ring/i.test(body) || (!rounds.length && /^(?:\d+\s*)?sc(?:\s*[x×]\s*\d+)?\s*$/i.test(body));
       if (number !== rounds.length + 1) messages.push(`Expected R${rounds.length + 1}; round numbers must be consecutive.`);
       if (magic && rounds.length) messages.push('Magic ring is only supported in the first round.');
       body = body.replace(/\b(?:in(?:to)?\s+(?:a\s+)?)?(?:mr|magic\s+ring)\b\s*,?/ig, '').trim();
@@ -75,7 +79,7 @@ export function parsePattern(text) {
         if (declared !== null && count !== declared) messages.push(`Calculated ${count} stitches; the written total is ${declared}.`);
       } catch (e) { messages.push(e.message); }
       const valid = messages.length === 0 && count !== null;
-      rounds.push({ number, instruction, count, consumed, declared, ops, valid, messages, previewCount: Math.max(1, Math.min(240, count ?? declared ?? previous ?? 6)) });
+      rounds.push({ number, instruction, color:roundColor, count, consumed, declared, ops, valid, messages, previewCount: Math.max(1, Math.min(240, count ?? declared ?? previous ?? 6)) });
       for (const message of messages) issues.push({ round: number, severity: 'error', message: `R${number}: ${message}` });
       previous = count;
     }

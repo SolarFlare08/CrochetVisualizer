@@ -65,3 +65,15 @@ Unit tests cover sample counts, increases/decreases, repeats, ranges, invalid sy
 - **Rounds**: the original flat output-stitch map, with click-to-select rounds.
 
 All three 3D modes share orbit/zoom, camera presets, cutaway and live pattern updates. These are illustrative representations of single crochet construction, not a physical yarn topology solver.
+
+Desktop now opens as a canvas-first studio with floating pattern and counter panels and a bottom display-mode switcher. Counter and Yarn & shape buttons toggle the right-hand tools. On smaller screens the panels stack for easier editing. The backing shell is centered within the yarn thickness, and yarn vertices follow the same curved profile through increases/decreases, including the cutaway view.
+
+## Project library and crochet tracking
+
+The Projects screen stores multiple independent projects, migrates your previous workspace into the library, and provides starter templates, clone, archive, and restore. All data stays in this browser. Each project keeps its own pattern, yarn settings and progress; Export/Import provides portable JSON backups.
+
+Worked stitches are teal; the next output stitch is orange, with an arrow showing its position. These colors also appear in Sketch, Chart and Rounds. The numbered stitch strip resumes before a chosen stitch. Active stitch camera follows the counter. Snapshot downloads the current 3D view as a PNG.
+
+Additional accepted single-crochet syntax: `sc2inc`, `sc2tog`, prefix repeats such as `6(sc, sc2inc)`, `R4-R6` ranges, `R0: mr`, and per-round hex colors such as `R1: col[#ffaa00], 6sc`. A first round containing only sc implicitly starts in a magic ring.
+
+This implements the local project workflow and single-crochet workspace inspired by Knotly. It does not reproduce Knotly accounts, cloud sharing, multipart SEW assembly, arbitrary attached branches, chain/oval foundations, or dc/hdc stitch simulation. Those instructions remain validation errors; the displayed fallback is explicitly approximate.

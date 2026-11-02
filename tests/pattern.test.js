@@ -37,6 +37,12 @@ test('invalid round does not advance the counter', () => {
   const p = { round: 0, stitch: 0 };
   assert.deepEqual(advanceProgress(p, parsePattern('R1: dc').rounds), p);
 });
+test('Knotly single-crochet aliases, prefix repeats, colors and round ranges', () => {
+  const p=parsePattern('R0: mr\nR1: col[#ffaa00], 6sc\nR2: 6sc2inc\nR3: 6(sc, sc2inc)\nR4-R5: 18sc\nR6: 6(sc, sc2tog)');
+  assert.deepEqual(p.issues,[]);
+  assert.deepEqual(p.rounds.map(r=>r.count),[6,12,18,18,18,12]);
+  assert.ok(p.rounds.every(r=>r.color==='#ffaa00'));
+});
 test('unknown preceding totals and unsupported star repeats are not verified', () => {
   const p = parsePattern('R1: 6 dc\nR2: 6 sc');
   assert.equal(p.rounds[1].valid, false);

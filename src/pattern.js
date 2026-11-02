@@ -17,11 +17,12 @@ R19: dec x6 (6)`;
 
 function sequence(source, previous, depth = 0) {
   if (depth > 5) throw Error('Repeat groups are nested too deeply.');
-  let s = source.toLowerCase().replace(/sc2inc\b/g,'inc').replace(/sc2tog\b/g,'dec').trim();
+  let s = source.toLowerCase().replace(/dc3tog\b/g,'dc3dec').replace(/(?:sc|dc|hdc)2inc\b/g,'inc$&').replace(/(inc)(?:sc|dc|hdc)2inc/g,'$1');
+  s = s.replace(/sc2inc\b/g,'inc').replace(/dc2tog\b/g,'dc2dec').replace(/sc2tog\b/g,'sc2dec').replace(/hdc2tog\b/g,'hdc2dec').trim();
   for (let n=0;n<5;n++) s=s.replace(/(\d+)\s*\(([^()]*)\)/g,'[$2] x$1');
-  if (/^(?:sc\s+around|sc\s+in\s+each\s+(?:st|stitch))$/.test(s)) {
+  if (/^(?:sc|dc|hdc)\s+around$/.test(s)) {
     if (!previous) throw Error('“sc around” needs a known previous round.');
-    return Array(previous).fill('sc');
+    return Array(previous).fill(s.startsWith('dc')?'dc':s.startsWith('hdc')?'hdc':'sc');
   }
   let i = 0, result = [];
   while (i < s.length) {
@@ -38,7 +39,8 @@ function sequence(source, previous, depth = 0) {
       for (let n = 0; n < count; n++) result.push(...inner);
       i = end + repeat[0].length; continue;
     }
-    const match = s.slice(i).match(/^(?:(\d+)\s*)?(sc|inc|dec)\b(?:\s*[x×]\s*(\d+))?/);
+    if (s.slice(i).startsWith('r[')) { const marker=s.slice(i).match(/^r\[(\d+)\]/); if (marker) { result.push(...Array(Number(marker[1])).fill('chain')); i+=marker[0].length; continue; } }
+    const match = s.slice(i).match(/^(?:(\d+)\s*)?(dc3dec|(?:sc|dc|hdc)2dec|inc(?:sc|dc|hdc)|sc|dc|hdc|inc|dec|ch|sk|sl)\b(?:\s*[x×]\s*(\d+))?/);
     if (!match) throw Error(`Unsupported notation near “${s.slice(i, i + 22)}”. Use sc, inc, dec, or repeat groups.`);
     const count = Number(match[1] || match[3] || 1);
     if (count > 2000 || result.length + count > 2000) throw Error('Round exceeds the 2,000 operation limit.');
@@ -70,12 +72,13 @@ export function parsePattern(text) {
       body = body.replace(/\b(?:in(?:to)?\s+(?:a\s+)?)?(?:mr|magic\s+ring)\b\s*,?/ig, '').trim();
       try {
         ops = sequence(body, previous);
-        count = ops.reduce((n, op) => n + (op === 'inc' ? 2 : 1), 0);
-        consumed = magic ? 0 : ops.reduce((n, op) => n + (op === 'dec' ? 2 : 1), 0);
+        count = ops.reduce((n, op) => n + (op === 'inc' || op.startsWith('inc') ? 2 : op === 'sk' ? 0 : 1), 0);
+        consumed = magic ? 0 : ops.reduce((n, op) => n + (op === 'ch' || op === 'chain' ? 0 : op === 'sk' ? 1 : /(?:2dec|3dec)$/.test(op) ? Number(op.match(/(\d+)dec$/)[1]) : 1), 0);
         if (!magic && rounds.length && previous === null) messages.push('The previous round has an unknown total; its stitch consumption cannot be validated.');
-        if (!magic && previous !== null && consumed !== previous) messages.push(`Uses ${consumed} stitches, but the previous round has ${previous}.`);
-        if (!magic && !rounds.length) messages.push('Start with sc stitches in MR to define the foundation.');
-        if (magic && ops.some(op => op !== 'sc')) messages.push('Use single crochet stitches to establish the magic ring.');
+        const chainRound = ops.some(op => op==='ch' || op==='chain');
+        if (!magic && previous !== null && !chainRound && consumed !== previous) messages.push(`Uses ${consumed} stitches, but the previous round has ${previous}.`);
+        if (!magic && !rounds.length) messages.push('Start with stitches in MR to define the foundation.');
+        if (magic && ops.some(op => op !== 'sc' && op !== 'dc' && op !== 'hdc')) messages.push('Use stitches to establish the foundation round.');
         if (declared !== null && count !== declared) messages.push(`Calculated ${count} stitches; the written total is ${declared}.`);
       } catch (e) { messages.push(e.message); }
       const valid = messages.length === 0 && count !== null;

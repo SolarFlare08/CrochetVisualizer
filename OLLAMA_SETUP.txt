@@ -1,0 +1,60 @@
+Loop Studio - local AI setup
+===========================
+
+The AI pattern formatter runs through Ollama on your computer.
+Ollama and model weights are installed separately from this Git repository.
+No API key is required.
+
+Windows setup
+-------------
+1. Install Ollama from https://ollama.com/download/windows
+2. Open Ollama from the Windows Start menu.
+3. Restart IntelliJ IDEA so its terminal picks up the Ollama command.
+4. In the terminal, download the model:
+
+   ollama pull qwen2.5:3b
+
+   The model download is approximately 1.9 GB.
+
+5. From the CrochetVisualizer project folder, run:
+
+   npm install
+   npm run dev
+
+6. Open the local address printed by Vite.
+7. In the user workspace, click Connect to local AI.
+8. Choose qwen2.5:3b, paste a pattern, and click Format with AI.
+9. Review the converted instructions before applying them.
+
+If npm is not recognized in PowerShell
+-------------------------------------
+Use these commands if Node.js is installed at its default location:
+
+   $env:Path = 'C:\Program Files\nodejs;' + $env:Path
+   & 'C:\Program Files\nodejs\npm.cmd' install
+   & 'C:\Program Files\nodejs\npm.cmd' run dev
+
+Troubleshooting
+---------------
+- Run ollama list to confirm qwen2.5:3b is installed.
+- If local AI cannot connect, open Ollama and reconnect in Loop Studio.
+- If Ollama is not running, ollama serve starts its local service.
+- Restart npm run dev after changing the backend configuration.
+- AI formatting needs the development server. The static build and
+  npm run preview do not include the AI endpoint.
+- First inference can take longer while the model loads into memory.
+
+Implementation
+--------------
+The browser calls /api/pattern-ai on the Vite development server.
+The server contacts Ollama at http://127.0.0.1:11434.
+Generated instructions are checked by the existing pattern parser.
+Applying a reviewed conversion resets the crochet counter.
+Generating or discarding a conversion leaves the active pattern intact.
+
+Verification on this development computer
+----------------------------------------
+Ollama and qwen2.5:3b were installed and a real model request converted
+the six-round sample into valid instructions with no count errors.
+The model also produced an incorrect UK terminology note. Always compare
+the conversion with the source; valid counts do not guarantee fidelity.

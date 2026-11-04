@@ -1,3 +1,4 @@
+import { operation } from './language.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -51,7 +52,7 @@ export function conformStitchToFabric(geometry, radius, centerY, radiusAt) {
 export function stitchConnections(round) {
   let input = 0, output = 0;
   return round.ops.flatMap(op => {
-    const used = op === 'dec' ? 2 : 1, made = op === 'inc' ? 2 : 1;
+    const { used, made } = operation(op);
     const result = Array.from({ length: made }, () => ({ output: output++, inputs: Array.from({ length: used }, (_, k) => input + k), op }));
     input += used;
     return result;

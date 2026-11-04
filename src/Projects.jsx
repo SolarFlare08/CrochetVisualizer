@@ -3,6 +3,9 @@ import { Plus, ArrowRight, Copy, Archive, RotateCcw, Leaf } from 'lucide-react';
 import { parsePattern, SAMPLE } from './pattern';
 
 export const STARTERS = [
+  { name: 'Chain strip', description: 'Ten chains and a turned double crochet row', text: 'P1:\nR0: 10ch, turn\nR1: 10dc, turn' },
+  { name: 'Increase curve', description: 'Five chains widen into ten stitches', text: 'R0: 5ch, turn\nR1: 5inc, turn' },
+  { name: 'Decrease curve', description: 'Ten chains narrow into five stitches', text: 'R0: 10ch, turn\nR1: 5dec, turn' },
   { name: 'Magic ring', description: 'Start from the center', text: 'R1: 6 sc in MR (6)' },
   { name: 'Sunshine swatch', description: 'Pattern from your screenshot', text: 'R1: col[#FE6F42], 15dc\nR2: 5(10ch, r[2], 2sc, 4hdc, 3dc, 2sk, sl)\nR3: col[#FFAD37], dc, 4(2dc, 4hdc, 5sc, 4hdc, 2dc, dc3tog), 2dc, 4hdc, 5sc, 4hdc, 2dc, dc2tog' },
   { name: 'Little basket', description: 'A base and straight sides', text: 'R1: 6 sc in MR (6)\nR2: inc x6 (12)\nR3: [sc, inc] x6 (18)\nR4: [2 sc, inc] x6 (24)\nR5-12: sc around (24)' },

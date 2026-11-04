@@ -1,3 +1,4 @@
+import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -44,7 +45,15 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     if (!api.current) return;
     const { model, controls } = api.current;
     while (model.children.length) { const child = model.children[0]; child.geometry?.dispose(); child.material?.dispose(); child.dispose?.(); model.remove(child); }
+    model.userData.rowLayout=null;
     if (!rounds.length) return;
+    if(rounds[0].rowMode) {
+      buildRows(model,rounds,10/gauge,10/rowGauge,view);
+      model.scale.set(widthScale,heightScale,widthScale);
+      const bounds=new THREE.Box3().setFromObject(model);
+      controls.target.copy(bounds.getCenter(new THREE.Vector3()));
+      return;
+    }
     const stitch = 10 / gauge, rise = 10 / rowGauge;
     const { radiusAt, height } = createFabricProfile(rounds, stitch, rise);
     const points = Array.from({length: rounds.length * 10 + 1}, (_,i) => {
@@ -159,6 +168,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       const radius = round.previewCount*stitch/(Math.PI*2) + stitch*.65;
       const pointer = new THREE.Mesh(new THREE.ConeGeometry(stitch*.22,stitch*.65,16),new THREE.MeshBasicMaterial({color:'#f27634',depthTest:false}));
       pointer.position.set(Math.sin(a)*radius,(currentRound+.7)*rise+stitch*.55,Math.cos(a)*radius);
+      if(model.userData.rowLayout) pointer.position.copy(model.userData.rowLayout[currentRound].points[currentStitch]).add(new THREE.Vector3(0,stitch*.65,0));
       pointer.rotation.z=Math.PI; pointer.renderOrder=10; pointer.userData.activePointer=true; model.add(pointer);
     }
   }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view]);
@@ -174,6 +184,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
   useEffect(() => {
     if (!api.current || camera !== 'stitch' || !rounds[currentRound]) return;
     const {cam,controls}=api.current, round=rounds[currentRound];
+    if(api.current.model.userData.rowLayout) { const p=api.current.model.userData.rowLayout[currentRound].points[Math.min(currentStitch,round.previewCount-1)].clone().multiply(api.current.model.scale);controls.target.copy(p);cam.position.copy(p).add(new THREE.Vector3(0,2,7));controls.update();return; }
     const a = Math.min(currentStitch,round.previewCount-1)/round.previewCount*Math.PI*2;
     const radius = round.previewCount*10/gauge/(Math.PI*2)*widthScale;
     const y=(currentRound+.7)*10/rowGauge*heightScale, distance=Math.max(5,radius+4);

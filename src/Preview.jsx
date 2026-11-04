@@ -1,10 +1,11 @@
+import { buildSolverView } from './solverView.js';
 import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStitchGeometry, stitchConnections, createFabricProfile, conformStitchToFabric } from './stitchGeometry';
 
-export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway }) {
+export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution }) {
   const host = useRef(null), api = useRef(null);
   useEffect(() => {
     const el = host.current;
@@ -47,6 +48,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     while (model.children.length) { const child = model.children[0]; child.geometry?.dispose(); child.material?.dispose(); child.dispose?.(); model.remove(child); }
     model.userData.rowLayout=null;
     if (!rounds.length) return;
+    if(solution?.nodes?.length) { buildSolverView(model,solution); const bounds=new THREE.Box3().setFromObject(model);controls.target.copy(bounds.getCenter(new THREE.Vector3()));return; }
     if(rounds[0].rowMode) {
       buildRows(model,rounds,10/gauge,10/rowGauge,view);
       model.scale.set(widthScale,heightScale,widthScale);
@@ -143,7 +145,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     });
     model.scale.set(widthScale, heightScale, widthScale);
     controls.target.y = rounds.length * rise * heightScale / 2;
-  }, [rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, cutaway, view]);
+  }, [rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, cutaway, view, solution]);
   useEffect(() => {
     if (!api.current) return;
     const { model } = api.current;

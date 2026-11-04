@@ -1,0 +1,15 @@
+import React,{useState} from 'react';
+import {parsePattern} from './pattern';
+export default function AIFormatter({source,onApply}){
+  const [models,setModels]=useState([]),[model,setModel]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[draft,setDraft]=useState(null);
+  async function call(method,body){
+    const response=await fetch('/api/pattern-ai',{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    let data;try{data=await response.json();}catch{throw Error('AI formatting requires npm run dev. Restart the development server to enable it.');}
+    if(!response.ok)throw Error(data.error||'AI formatting failed.');return data;
+  }
+  async function connect(){setBusy(true);setError('');try{const data=await call('GET');setModels(data.models);setModel(data.models[0]||'');if(!data.models.length)setError('No models installed. Pull a text model in Ollama, then reconnect.');}catch(e){setError(e.message);}finally{setBusy(false);}}
+  async function format(){setBusy(true);setError('');setDraft(null);try{const data=await call('POST',{source,model});setDraft({...data,source});}catch(e){setError(e.message);}finally{setBusy(false);}}
+  const validation=draft?parsePattern(draft.pattern):null;
+  const focused=validation?.supported&&validation.rounds.every(r=>!r.rowMode&&r.ops.every(op=>['sc','inc','dec','sc2inc','sc2tog','sc2dec'].includes(op)));
+  return <section className="ai-formatter"><strong>AI pattern formatter</strong><small>Uses an installed Ollama model. Pattern text is sent to Ollama on this computer.</small><button disabled={busy} onClick={connect}>{busy?'Working…':'Connect to local AI'}</button>{models.length>0&&<><label>Text model<select value={model} disabled={busy} onChange={e=>setModel(e.target.value)}>{models.map(m=><option key={m}>{m}</option>)}</select></label><button disabled={busy||!source.trim()} onClick={format}>{busy?'Formatting…':'Format with AI'}</button></>}{error&&<p role="alert">{error}</p>}<details><summary>First-time setup</summary><p>Install Ollama from ollama.com, open it, and install a text model. Restart this app with npm run dev, then connect above. A model download needs disk space and memory.</p><p>No model is bundled with Loop Studio.</p></details>{draft&&<div className="ai-draft"><label>Review AI conversion<textarea value={draft.pattern} onChange={e=>setDraft({...draft,pattern:e.target.value})}/></label>{draft.notes.map((n,i)=><p key={i}>{n}</p>)}{validation.issues.map((i,n)=><p role="status" key={n}>{i.message}</p>)}{!focused&&validation.supported&&<p>This conversion contains notation outside this workspace’s SC/INC/DEC scope.</p>}{source!==draft.source&&<p>The source has changed. Format it again.</p>}<small>Compare with your source. Valid stitch counts cannot prove the AI preserved the instructions.</small><button disabled={!focused||source!==draft.source} onClick={()=>{onApply(draft.pattern);setDraft(null);}}>Apply reviewed pattern · reset counter</button><button onClick={()=>setDraft(null)}>Discard</button></div>}</section>;
+}

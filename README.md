@@ -15,6 +15,16 @@ Open the localhost URL printed by Vite. `npm run build` produces a static `dist/
 
 ## Supported notation (US terms)
 
+## Local AI pattern formatting
+
+The user workspace includes **AI pattern formatter**, backed by an installed Ollama text model. Install Ollama from https://ollama.com, open it and install a text model appropriate for your computer. The app does not download or bundle model weights. Run `ollama list` to check installed models, then use **Connect to local AI** in the app and choose a text model.
+
+Restart `npm run dev` after updating this project. The Vite development server provides `/api/pattern-ai` and contacts only `127.0.0.1:11434`. This endpoint is not included in static builds or `npm run preview`; hosting the AI feature requires a backend. No API key is needed. Model inference may take up to two minutes on slower hardware.
+
+Paste source text, select **Format with AI**, compare the editable conversion with the original, then **Apply reviewed pattern**. Applying resets progress; generating and discarding a draft do not. Written stitch counts are checked by the parser, and unsupported user-workspace notation blocks application. Model output can still omit or misinterpret instructions even when counts validate. Local rule formatting remains available separately.
+
+### Notation
+
 One round per line, with consecutive round numbers starting at 1:
 
 ```text

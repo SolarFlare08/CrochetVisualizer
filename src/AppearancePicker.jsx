@@ -3,7 +3,7 @@ import {Sun,Moon,Ghost,Leaf,TreePine,Waves,Flower2} from 'lucide-react';
 import {APPEARANCES} from './appearances.js';
 import './appearancePicker.css';
 const icons={sun:Sun,moon:Moon,ghost:Ghost,leaf:Leaf,tree:TreePine,waves:Waves,flower:Flower2};
-const swatches={day:['#fff0c8','#ba7519','#e4bc67'],night:['#20334d','#bdcff9','#607dac'],halloween:['#392048','#ffab56','#9e5cb5'],thanksgiving:['#f4d7b7','#9d522b','#ca9569'],christmas:['#184f38','#ffb5aa','#559b72'],ocean:['#d5f4f4','#097d8e','#70bdc9'],lavender:['#ebddfc','#8851b7','#bc94de']};
+const swatches={day:['#fff0c8','#ba7519','#e4bc67'],night:['#1b2028','#c4d1e8','#626e86'],halloween:['#fff0dd','#c46629','#a77dba'],thanksgiving:['#fff7ec','#9d6241','#d9b99b'],christmas:['#fffdf5','#28744b','#dba5a0'],ocean:['#d5f4f4','#097d8e','#70bdc9'],lavender:['#ebddfc','#8851b7','#bc94de']};
 export default function AppearancePicker({value,onChange}){
   const [open,setOpen]=useState(false),root=useRef(null),trigger=useRef(null),leave=useRef(null);
   useEffect(()=>{const close=e=>{if(!root.current?.contains(e.target))setOpen(false);};document.addEventListener('pointerdown',close);return()=>{document.removeEventListener('pointerdown',close);clearTimeout(leave.current);};},[]);

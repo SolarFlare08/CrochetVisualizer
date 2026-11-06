@@ -19,6 +19,7 @@ import './user.css';
 import './previewPolish.css';
 import './previewSettings.css';
 import './orbitMotion.css';
+import './seasonalAccents.css';
 const KEY='loop-user-workspace-v1';
 export default function UserWorkspace(){
   const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}});

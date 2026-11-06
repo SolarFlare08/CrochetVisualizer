@@ -33,6 +33,7 @@ export function parsePattern(text) {
       const instruction = header[3], messages = [];
       const expected = instruction.match(/\((\d+)\)\s*$/); const declared = expected ? Number(expected[1]) : null;
       let body = instruction.replace(/\(\d+\)\s*$/, '').trim(), ops = [], count = null, consumed = null;
+      const repeatContexts=[];
       const turn = /(?:^|[,\s])turn\s*$/i.test(body);
       body=body.replace(/[,\s]*turn\s*$/i,'').trim();
       const chainFoundation = !rounds.length && /^(?:\d+\s*)?ch$/i.test(body);
@@ -42,7 +43,7 @@ export function parsePattern(text) {
       if (magic && rounds.length) messages.push('Magic ring is only supported in the first round.');
       body = body.replace(/\b(?:in(?:to)?\s+(?:a\s+)?)?(?:mr|magic\s+ring)\b\s*,?/ig, '').trim();
       try {
-        ops = sequence(body, previous);
+        ops = sequence(body, previous,0,repeatContexts);
         count = ops.reduce((n, op) => n + operation(op).made, 0);
         consumed = magic ? 0 : ops.reduce((n, op) => n + operation(op).used, 0);
         let chainLength=0, chainRoots=0, rootUsage=0;
@@ -68,7 +69,7 @@ export function parsePattern(text) {
       if (count > 1000) messages.push('A round may produce at most 1,000 stitches.');
       const approximate = ops.some(op => !['sc','inc','dec'].includes(op));
       const valid = messages.length === 0 && count !== null;
-      rounds.push({ number, instruction, color:roundColor, count, consumed, declared, ops, rowMode, turn, approximate, valid, messages, previewCount: Math.max(1, Math.min(240, count ?? declared ?? previous ?? 6)) });
+      rounds.push({ number, instruction, color:roundColor, count, consumed, declared, ops, repeatContexts,roundRepeat:end>start?{start,end,iteration:number-start+1,total:end-start+1}:null,rowMode, turn, approximate, valid, messages, previewCount: Math.max(1, Math.min(240, count ?? declared ?? previous ?? 6)) });
       for (const message of messages) issues.push({ round: number, severity: 'error', message: `R${number}: ${message}` });
       previous = count;
     }

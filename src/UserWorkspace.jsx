@@ -1,3 +1,4 @@
+import {Maximize2,Minimize2} from 'lucide-react';
 import AppearancePicker from './AppearancePicker';
 import {appearanceStyle} from './appearances';
 import './appearanceSkin.css';
@@ -20,6 +21,9 @@ import './previewPolish.css';
 import './previewSettings.css';
 import './orbitMotion.css';
 import './seasonalAccents.css';
+import './anchoredOrbit.css';
+import './circularAppearance.css';
+import './focusMode.css';
 const KEY='loop-user-workspace-v1';
 export default function UserWorkspace(){
   const [saved,setSaved]=useState(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{};}catch{return {};}});
@@ -27,6 +31,13 @@ export default function UserWorkspace(){
   const history=usePatternHistory(initial);
   const {text,paste,progress,setPaste,setProgress}=history;
   const [message,setMessage]=useState(''),[camera,setCamera]=useState('orbit'),[resetCamera,setResetCamera]=useState(0);
+  const [focus,setFocus]=useState(()=>{try{return localStorage.getItem('loop-focus-view-v1')==='true';}catch{return false;}});
+  useEffect(()=>{try{localStorage.setItem('loop-focus-view-v1',String(focus));}catch{}},[focus]);
+  useEffect(()=>{const key=e=>{
+    if(e.isComposing||e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.key==='Escape'&&focus&&!document.querySelector('.appearance-picker.open,.preview-settings-menu.open')){setFocus(false);return;}
+    if(e.key.toLowerCase()==='f'&&!e.target.closest('input,textarea,button,select,[contenteditable="true"],[role="button"]')){e.preventDefault();setFocus(v=>!v);}
+  };addEventListener('keydown',key);return()=>removeEventListener('keydown',key);},[focus]);
   const [theme,setTheme]=useTheme();
   useEffect(()=>{const previous=document.title;document.title='Loop & Orbit · Crochet workspace';return()=>{document.title=previous;};},[]);
   const dark=theme.dark;
@@ -53,9 +64,9 @@ export default function UserWorkspace(){
     };
     addEventListener('keydown',shortcut);return()=>removeEventListener('keydown',shortcut);
   },[history.undo,history.redo]);
-  return <div className="user-workspace" data-theme={dark?'dark':'light'} data-appearance={theme.id} style={appearanceStyle(theme)}><main>
+  return <div className={`user-workspace ${focus?'focus-view':''}`} data-theme={dark?'dark':'light'} data-appearance={theme.id} style={appearanceStyle(theme)}><main>
     <PatternPanel history={history} parsed={parsed} allowed={allowed}/>
-    <section className="panel user-preview"><div className="user-preview-label"><strong>Your crochet, stitch by stitch</strong><span>{done?'All stitches complete':`Next: ${action?.label||'—'} · stitch ${progress.stitch+1} · round ${round?.number??'—'}`}</span></div><div className="preview-legend"><span><i className="legend-next"/>Next</span><span><i className="legend-worked"/>Worked</span><span><i className="legend-pending"/>Pending</span></div>{allowed&&!solution?.error?<Preview palette={theme} surfaceOpacity={viewSettings.opacity} hideFutureRounds={viewSettings.hideFuture} dark={dark} rounds={parsed.rounds} solution={solution} color="#7f90b4" gauge={20} rowGauge={24} widthScale={1} heightScale={1} currentRound={ri} currentStitch={output} activeOutputCount={action?.made||1} actionLabel={action?.label} actionNumber={progress.stitch+1} view="sketch" camera={camera} resetCamera={resetCamera} cutaway={false}/>:<div className="solver-empty">{solution?.error||'Resolve the pattern instructions to calculate its construction.'}</div>}<div className="user-camera">{[['orbit','Overview'],['front','Front'],['top','Top'],['stitch','Follow stitch']].map(([c,label])=><button key={c} aria-pressed={camera===c} className={camera===c?'selected':''} onClick={()=>{setCamera(c);setResetCamera(n=>n+1);}}>{label}</button>)}</div><div className="preview-guidance"><span>Drag to rotate · Scroll to zoom</span><details><summary>About this sketch</summary><p>Approximate relaxed stitch network. Yarn tension and stuffing can change the final shape.</p><p>240 relaxation passes · mean length error {solution?.strain!==undefined?(solution.strain*100).toFixed(1):'—'}%</p></details></div><div className="preview-tools"><AppearancePicker value={theme} onChange={setTheme}/><PreviewSettings value={viewSettings} onChange={setViewSettings}/></div><SessionTimer pattern={text} completed={totals.worked} total={totals.total} valid={allowed}/><TotalProgress rounds={parsed.rounds} progress={progress} enabled={allowed}/></section>
-    <CounterPanel actionCount={actions.length} actionLabel={action?.label} round={round} roundIndex={ri} totalRounds={parsed.rounds.length} stitch={progress.stitch} done={done} enabled={allowed} onStep={step} onResume={n=>setProgress({round:ri,stitch:n})} onComplete={()=>setProgress(ri<parsed.rounds.length-1?{round:ri+1,stitch:0}:{round:ri,stitch:round.ops.length})} onReset={()=>setProgress({round:0,stitch:0})} message={message} backup={<ProgressBackup text={text} paste={paste} progress={progress} onImport={value=>history.replace({text:value.text,paste:value.paste,progress:value.progress})}/>}/>
+    <section className="panel user-preview"><div className="user-preview-label"><strong>Your crochet, stitch by stitch</strong><span>{done?'All stitches complete':`Next: ${action?.label||'—'} · stitch ${progress.stitch+1} · round ${round?.number??'—'}`}</span></div><div className="preview-legend"><span><i className="legend-next"/>Next</span><span><i className="legend-worked"/>Worked</span><span><i className="legend-pending"/>Pending</span></div>{allowed&&!solution?.error?<Preview palette={theme} surfaceOpacity={viewSettings.opacity} hideFutureRounds={viewSettings.hideFuture} dark={dark} rounds={parsed.rounds} solution={solution} color="#7f90b4" gauge={20} rowGauge={24} widthScale={1} heightScale={1} currentRound={ri} currentStitch={output} activeOutputCount={action?.made||1} actionLabel={action?.label} actionNumber={progress.stitch+1} view="sketch" camera={camera} resetCamera={resetCamera} cutaway={false}/>:<div className="solver-empty">{solution?.error||'Resolve the pattern instructions to calculate its construction.'}</div>}<div className="user-camera">{[['orbit','Overview'],['front','Front'],['top','Top'],['stitch','Follow stitch']].map(([c,label])=><button key={c} aria-pressed={camera===c} className={camera===c?'selected':''} onClick={()=>{setCamera(c);setResetCamera(n=>n+1);}}>{label}</button>)}</div><div className="preview-guidance"><span>Drag to rotate · Scroll to zoom</span><details><summary>About this sketch</summary><p>Approximate relaxed stitch network. Yarn tension and stuffing can change the final shape.</p><p>240 relaxation passes · mean length error {solution?.strain!==undefined?(solution.strain*100).toFixed(1):'—'}%</p></details></div><div className="preview-tools"><AppearancePicker value={theme} onChange={setTheme}/><PreviewSettings value={viewSettings} onChange={setViewSettings}/><button type="button" className="preview-tool-circle focus-mode-toggle" aria-label={focus?'Exit focus mode':'Enter focus mode'} aria-pressed={focus} title={focus?'Exit focus mode (F or Escape)':'Focus mode (F)'} onClick={()=>setFocus(v=>!v)}>{focus?<Minimize2 size={16}/>:<Maximize2 size={16}/>}</button></div><SessionTimer pattern={text} completed={totals.worked} total={totals.total} valid={allowed}/><TotalProgress rounds={parsed.rounds} progress={progress} enabled={allowed}/></section>
+    <CounterPanel rounds={parsed.rounds} actionCount={actions.length} actionLabel={action?.label} round={round} roundIndex={ri} totalRounds={parsed.rounds.length} stitch={progress.stitch} done={done} enabled={allowed} onStep={step} onResume={n=>setProgress({round:ri,stitch:n})} onComplete={()=>setProgress(ri<parsed.rounds.length-1?{round:ri+1,stitch:0}:{round:ri,stitch:round.ops.length})} onReset={()=>setProgress({round:0,stitch:0})} message={message} backup={<ProgressBackup text={text} paste={paste} progress={progress} onImport={value=>history.replace({text:value.text,paste:value.paste,progress:value.progress})}/>}/>
   </main></div>;
 }

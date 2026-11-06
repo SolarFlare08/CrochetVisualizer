@@ -8,12 +8,18 @@ export function operation(op) {
   const type=match?.[1] || op;
   return {type, used:match ? (match[3]==='inc'?1:+match[2]) : ['ch','tch','bk'].includes(type)||type.startsWith('r[')?0:1, made:match ? (match[3]==='inc'?+match[2]:1) : type==='sk'||type==='bk'||type.startsWith('r[')?0:1, height:({sl:.35,ch:.45,tch:.45,sc:1,hdc:1.5,dc:2,tr:3,dtr:4,puff:1.5,bobble:2,popcorn:2})[type] || 1};
 }
-export function readSequence(source, previous, depth=0) {
+export function readSequence(source, previous, depth=0,trace) {
   if(depth>5) throw Error('Repeat groups are nested too deeply.');
   let s=source.toLowerCase().trim(), result=[], i=0;
   const around=s.match(/^(sc|hdc|dc|tr|dtr|x|t|f|e)\s+(?:around|in each (?:st|stitch))$/);
-  if(around) { if(!previous) throw Error('Around needs a known previous round.'); return Array(previous).fill(aliases[around[1]]||around[1]); }
-  function add(ops,n=1) { if(n<1||n>1000||result.length+ops.length*n>2000) throw Error('Repeat exceeds the operation limit.'); for(let j=0;j<n;j++)result.push(...ops); }
+  if(around) { if(!previous) throw Error('Around needs a known previous round.');const op=aliases[around[1]]||around[1];if(trace)for(let j=0;j<previous;j++)trace.push([{pattern:op.toUpperCase(),iteration:j+1,total:previous,step:1,length:1}]);return Array(previous).fill(op); }
+  function add(ops,n=1,label='',innerTrace=[]) {
+    if(n<1||n>1000||result.length+ops.length*n>2000) throw Error('Repeat exceeds the operation limit.');
+    for(let j=0;j<n;j++)for(let k=0;k<ops.length;k++){
+      result.push(ops[k]);
+      if(trace){const outer=n>1?[{pattern:(label||ops.join(', ')).trim().replace(/\s+/g,' ').toUpperCase(),iteration:j+1,total:n,step:k+1,length:ops.length}]:[];trace.push([...outer,...(innerTrace[k]||[])]);}
+    }
+  }
   while(i<s.length) {
     if(/[\s,;]/.test(s[i])) {i++;continue;}
     const prefix=s.slice(i).match(/^(\d+)\s*/); let n=prefix?+prefix[1]:1; if(prefix)i+=prefix[0].length;
@@ -23,11 +29,12 @@ export function readSequence(source, previous, depth=0) {
       const start=i++, stack=[s[start]];
       while(i<s.length&&stack.length) { if('[('.includes(s[i]))stack.push(s[i]); else if('])'.includes(s[i])) {const open=stack.pop();if((open==='['?']':')')!==s[i])throw Error('Mismatched brackets.');} i++; }
       if(stack.length)throw Error('Missing closing bracket.');
-      const inner=readSequence(s.slice(start+1,i-1),previous,depth+1);
+      const innerSource=s.slice(start+1,i-1),innerTrace=[];
+      const inner=readSequence(innerSource,previous,depth+1,innerTrace);
       const suffix=s.slice(i).match(/^\s*(?:[x×]|repeat)\s*(\d+)(?:\s*times)?/);
       const sign=s[i];
-      if(suffix&&!kind) {i+=suffix[0].length;add(inner,n*+suffix[1]);continue;}
-      if(!kind&&s[start]==='(') {if(!prefix)throw Error('Add a repeat count after the group.');add(inner,n);continue;}
+      if(suffix&&!kind) {i+=suffix[0].length;add(inner,n*+suffix[1],innerSource,innerTrace);continue;}
+      if(!kind&&s[start]==='(') {if(!prefix)throw Error('Add a repeat count after the group.');add(inner,n,innerSource,innerTrace);continue;}
       if(sign==='+'||sign==='-')i++;
       const textured=['puff','bobble','popcorn'].includes(kind);
       if(inner.length>(textured?8:12)||inner.some(x=>operation(x).used!==1||operation(x).made!==1))throw Error('Invalid compound components or component limit exceeded.');
@@ -39,7 +46,7 @@ export function readSequence(source, previous, depth=0) {
     let op=aliases[token[0]]||token[0]; i+=token[0].length;
     const repeat=s.slice(i).match(/^\s*[x×]\s*(\d+)/);if(repeat){n*=+repeat[1];i+=repeat[0].length;}
     const spec=operation(op);if(spec.used>12||spec.made>12)throw Error('Compound stitches allow at most 12 components.');
-    add([op],n);
+    add([op],n,op);
   }
   if(!result.length)throw Error('Enter stitch instructions for this round.');
   return result;

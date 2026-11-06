@@ -6,6 +6,7 @@ export default function CounterPanel({round,roundIndex,totalRounds,stitch,done,e
   const total=actionCount??round?.count??0,percent=total?Math.min(100,stitch/total*100):0;
   return <aside className="panel user-counter counter-panel">
     <div className="counter-heading"><h2>On your hook</h2><span className="counter-round">Round {round?.number??'—'} <span>/ {totalRounds}</span></span></div>
+    <div className="counter-next-action" aria-live="polite"><span>{done?'ALL DONE':'NEXT'}</span><strong>{done?'✓':enabled?actionLabel||'—':'—'}</strong></div>
     <div className="counter-readout"><span className="counter-caption">{done?'PROJECT COMPLETE':'STITCHES WORKED'}</span><div className="user-count" aria-live="polite">{String(stitch).padStart(2,'0')}<small>/ {total||'—'}</small></div><div className="counter-meter" role="progressbar" aria-label="Current round progress" aria-valuemin={0} aria-valuemax={total||1} aria-valuenow={stitch}><span style={{width:`${percent}%`}}/></div><p>{done?'Every stitch, made by you.':`${Math.max(0,total-stitch)} stitches left this round`}</p></div>
     <div className="counter-buttons"><button disabled={!enabled||(!roundIndex&&!stitch)} aria-label="Previous stitch" onClick={()=>onStep(-1)}><Minus size={18}/></button><button disabled={!enabled||done} className="counter-plus" onClick={()=>onStep(1)}><Plus size={18}/> Next stitch</button></div>
     <p className="counter-shortcut">or press <kbd>Space</kbd></p>

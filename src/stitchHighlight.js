@@ -9,6 +9,13 @@ export function highlightStitch(model,solution,ri,si,number,stitchType='',output
   const sphere=new THREE.Mesh(new THREE.SphereGeometry(.095,18,12),material);sphere.position.copy(point);sphere.renderOrder=21;group.add(sphere);
   const halo=new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffb76b',transparent:true,opacity:.3,depthTest:false,depthWrite:false}));halo.position.copy(point);halo.scale.set(.34,.34,1);halo.renderOrder=19;group.add(halo);
   const points=model.userData.rowLayout.flatMap(r=>r.points);
+  const ringPoints=model.userData.rowLayout[ri].points;
+  if(ringPoints.length>1){
+    const direction=ringPoints[(si+1)%ringPoints.length].clone().sub(point).normalize();
+    const arrow=new THREE.ArrowHelper(direction,point.clone().add(new THREE.Vector3(0,.17,0)),.38,'#ef662e',.13,.1);
+    arrow.traverse(o=>{o.renderOrder=23;if(o.material){o.material.depthTest=false;o.material.depthWrite=false;}});
+    group.add(arrow);
+  }
   const roots=solution.edges.filter(e=>e.owner===id&&e.kind==='wale').map(e=>e.a);
   const siblings=solution.edges.filter(e=>e.kind==='wale'&&roots.includes(e.a)&&solution.nodes[e.owner].round===ri);
   const selected=solution.edges.filter(e=>e.owner===id);

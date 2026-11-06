@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {scArm,magicRingArm} from './stitchSymbols.js';
+import {fabricSurface} from './fabricSurface.js';
 export function buildSolverView(model,solution) {
   const {nodes,edges}=solution;
   const minY=Math.min(...nodes.map(n=>n.y));
@@ -17,7 +18,8 @@ export function buildSolverView(model,solution) {
       if(e.kind==='wale')scArm(a,b).forEach(([start,end])=>segment(start,end,owner));
     });
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));g.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(vertices.length),3));g.userData.owners=owners;
-    const line=new THREE.LineSegments(g,new THREE.LineBasicMaterial({vertexColors:true}));line.userData.roundIndex=ri;model.add(line);
+    const line=new THREE.LineSegments(g,new THREE.LineBasicMaterial({vertexColors:true}));line.userData.roundIndex=ri;line.renderOrder=1;model.add(line);
   });
   model.userData.rowLayout=solution.rings.map(ring=>({points:ring.map(id=>points[id])}));
+  model.add(fabricSurface(model.userData.rowLayout.map(r=>r.points)));
 }

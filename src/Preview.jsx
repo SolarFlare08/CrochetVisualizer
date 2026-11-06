@@ -1,4 +1,5 @@
 import { buildSolverView } from './solverView.js';
+import { highlightStitch, disposeObject } from './stitchHighlight.js';
 import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -45,10 +46,10 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
   useEffect(() => {
     if (!api.current) return;
     const { model, controls } = api.current;
-    while (model.children.length) { const child = model.children[0]; child.geometry?.dispose(); child.material?.dispose(); child.dispose?.(); model.remove(child); }
+    while (model.children.length) { const child = model.children[0]; disposeObject(child); child.dispose?.(); model.remove(child); }
     model.userData.rowLayout=null;
     if (!rounds.length) return;
-    if(solution?.nodes?.length) { buildSolverView(model,solution); const bounds=new THREE.Box3().setFromObject(model);controls.target.copy(bounds.getCenter(new THREE.Vector3()));return; }
+    if(solution?.nodes?.length) { api.current.scene.traverse(o=>{if(o.type==='GridHelper'){o.material.transparent=true;o.material.opacity=.22;}});buildSolverView(model,solution); const bounds=new THREE.Box3().setFromObject(model);controls.target.copy(bounds.getCenter(new THREE.Vector3()));return; }
     if(rounds[0].rowMode) {
       buildRows(model,rounds,10/gauge,10/rowGauge,view);
       model.scale.set(widthScale,heightScale,widthScale);
@@ -150,7 +151,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     if (!api.current) return;
     const { model } = api.current;
     const previous = model.children.find(child => child.userData.activePointer);
-    if (previous) { previous.geometry.dispose(); previous.material.dispose(); model.remove(previous); }
+    if (previous) { disposeObject(previous); model.remove(previous); }
     const worked = new THREE.Color('#53aa99'), active = new THREE.Color('#f27634');
     for (const mesh of model.children) if (mesh.isInstancedMesh) {
       const round = mesh.userData.roundIndex, base = new THREE.Color(rounds[round]?.color || color);
@@ -158,6 +159,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       mesh.instanceColor.needsUpdate = true;
     }
     for (const mesh of model.children) if (mesh.isLineSegments && mesh.geometry.userData.owners) {
+      if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex===currentRound?1:.28;}
       const ri=mesh.userData.roundIndex, base=new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
       mesh.geometry.userData.owners.forEach((n,i)=>{
         const tint=ri<currentRound || (ri===currentRound && n<currentStitch)?worked:ri===currentRound && n===currentStitch?active:base;
@@ -165,6 +167,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       }); attribute.needsUpdate=true;
     }
     const round = rounds[currentRound];
+    if(solution){if(round?.valid&&currentStitch<round.count)highlightStitch(model,solution,currentRound,currentStitch,round.number);return;}
     if (round?.valid && currentStitch < round.previewCount) {
       const stitch = 10/gauge, rise = 10/rowGauge, a = currentStitch / round.previewCount * Math.PI*2;
       const radius = round.previewCount*stitch/(Math.PI*2) + stitch*.65;
@@ -173,20 +176,29 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       if(model.userData.rowLayout) pointer.position.copy(model.userData.rowLayout[currentRound].points[currentStitch]).add(new THREE.Vector3(0,stitch*.65,0));
       pointer.rotation.z=Math.PI; pointer.renderOrder=10; pointer.userData.activePointer=true; model.add(pointer);
     }
-  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view]);
+  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution]);
   useEffect(() => {
     if (!api.current) return;
     const { cam, controls } = api.current, h = Math.max(6, rounds.length * 10 / rowGauge * heightScale), d = Math.max(16, h * 2.2, ...rounds.map(r => r.previewCount * 10 / gauge / Math.PI * widthScale * 2.4));
     const y = controls.target.y;
+    if(solution?.nodes?.length){
+      const bounds=new THREE.Box3().setFromPoints(api.current.model.userData.rowLayout.flatMap(r=>r.points));
+      const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
+      const vFov=THREE.MathUtils.degToRad(cam.fov),hFov=2*Math.atan(Math.tan(vFov/2)*cam.aspect);
+      const distance=Math.max(size.length()*.5/Math.sin(Math.min(vFov,hFov)/2)*1.35,2);
+      controls.minDistance=.7;controls.target.copy(center);
+      const direction=camera==='top'?new THREE.Vector3(.001,1,.001):camera==='front'?new THREE.Vector3(0,.05,1):new THREE.Vector3(.8,.55,1).normalize();
+      cam.position.copy(center).addScaledVector(direction,distance);controls.update();return;
+    }
     if (camera === 'top') cam.position.set(.01, y + d, .01);
     else if (camera === 'front') cam.position.set(0, y + .1, d);
     else cam.position.set(d * .65, y + d * .35, d * .8);
     controls.update();
-  }, [camera, resetCamera, view, rounds, gauge, rowGauge, widthScale, heightScale]);
+  }, [camera, resetCamera, view, rounds, gauge, rowGauge, widthScale, heightScale,solution]);
   useEffect(() => {
     if (!api.current || camera !== 'stitch' || !rounds[currentRound]) return;
     const {cam,controls}=api.current, round=rounds[currentRound];
-    if(api.current.model.userData.rowLayout) { const p=api.current.model.userData.rowLayout[currentRound].points[Math.min(currentStitch,round.previewCount-1)].clone().multiply(api.current.model.scale);controls.target.copy(p);cam.position.copy(p).add(new THREE.Vector3(0,2,7));controls.update();return; }
+    if(api.current.model.userData.rowLayout) { const p=api.current.model.userData.rowLayout[currentRound].points[Math.min(currentStitch,round.previewCount-1)].clone().multiply(api.current.model.scale);controls.target.copy(p);cam.position.copy(p).add(new THREE.Vector3(0,solution?1:2,solution?3:7));controls.update();return; }
     const a = Math.min(currentStitch,round.previewCount-1)/round.previewCount*Math.PI*2;
     const radius = round.previewCount*10/gauge/(Math.PI*2)*widthScale;
     const y=(currentRound+.7)*10/rowGauge*heightScale, distance=Math.max(5,radius+4);

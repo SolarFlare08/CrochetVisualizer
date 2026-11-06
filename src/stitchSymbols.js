@@ -4,10 +4,13 @@ import * as THREE from 'three';
 // bar identifies single crochet, including both arms of an increase.
 export function scArm(a,b){
   const direction=b.clone().sub(a).normalize();
-  const normal=new THREE.Vector3(a.x+b.x,0,a.z+b.z).normalize();
-  let across=new THREE.Vector3().crossVectors(normal,direction);
-  if(across.lengthSq()<1e-6)across=new THREE.Vector3(1,0,0).cross(direction);
-  if(across.lengthSq()<1e-6)across.set(0,0,1);
+  // Keep the bar in the ground (XZ) plane, transverse to the arm's
+  // horizontal projection, even where the fabric bends near the base.
+  let across=new THREE.Vector3(-direction.z,0,direction.x);
+  if(across.lengthSq()<1e-6){
+    across.set(a.z+b.z,0,-a.x-b.x);
+    if(across.lengthSq()<1e-6)across.set(1,0,0);
+  }
   across.normalize().multiplyScalar(Math.min(.11,a.distanceTo(b)*.23));
   const middle=a.clone().lerp(b,.64);
   return [[a,b],[middle.clone().sub(across),middle.clone().add(across)]];

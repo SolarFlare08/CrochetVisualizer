@@ -3,3 +3,7 @@
 @media(max-width:650px){.user-preview .session-timer{right:12px;bottom:130px;width:190px}}
 
 .user-preview .session-timer{z-index:5;background:#ffffffed;box-shadow:0 6px 24px #425c7820;border-color:#cbdce8;max-width:calc(100% - 16px)}.session-timer-caption{cursor:grab;touch-action:none;user-select:none;padding:9px 11px;margin:-11px -12px 9px;border-bottom:1px solid #e3ebf1;background:#edf3f8;border-radius:9px 9px 0 0;color:#7691a7}.session-timer.is-dragging{box-shadow:0 10px 30px #425c7830}.session-timer.is-dragging .session-timer-caption{cursor:grabbing}.session-timer-caption:focus-visible{outline:2px solid #df8447;outline-offset:2px}.session-timer-controls{margin-top:0}
+
+.session-eta{margin-top:10px;padding-top:8px;border-top:1px solid #e4ebef;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:8px;color:#9aabb8}.session-eta strong{font-size:9px;font-weight:500;color:#728e9e}
+
+.user-preview .session-timer{width:220px}.session-timer-controls time{font-size:18px}.session-eta strong{white-space:nowrap}

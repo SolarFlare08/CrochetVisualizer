@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStitchGeometry, stitchConnections, createFabricProfile, conformStitchToFabric } from './stitchGeometry';
 
-export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber }) {
+export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber, dark=false }) {
   const host = useRef(null), api = useRef(null);
   useEffect(() => {
     const el = host.current;
@@ -29,10 +29,16 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const resize = () => { const { width, height } = el.getBoundingClientRect(); renderer.setSize(width, height); cam.aspect = width / Math.max(height, 1); cam.updateProjectionMatrix(); };
     const observer = new ResizeObserver(resize); observer.observe(el); resize();
     let frame; const animate = () => { frame = requestAnimationFrame(animate); controls.update(); renderer.render(scene, cam); }; animate();
-    api.current = { scene, model, cam, controls, renderer };
+    api.current = { scene, model, cam, controls, renderer, grid };
     return () => { cancelAnimationFrame(frame); observer.disconnect(); controls.dispose(); scene.traverse(o => { o.geometry?.dispose(); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); }); renderer.dispose(); el.replaceChildren(); api.current = null; };
   }, []);
   const previousSnapshot = useRef(snapshotRequest);
+  useEffect(()=>{
+    if(!api.current)return;
+    const {renderer,scene,grid}=api.current,background=dark?'#141e28':'#f3f2ed';
+    renderer.setClearColor(background,1);scene.fog.color.set(background);
+    grid.material.transparent=true;grid.material.opacity=dark?.12:.22;grid.material.color.set(dark?'#516e84':'#ffffff');
+  },[dark]);
   useEffect(() => {
     if (snapshotRequest === previousSnapshot.current) return;
     previousSnapshot.current = snapshotRequest;
@@ -51,7 +57,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     while (model.children.length) { const child = model.children[0]; disposeObject(child); child.dispose?.(); model.remove(child); }
     model.userData.rowLayout=null;
     if (!rounds.length) return;
-    if(solution?.nodes?.length) { api.current.scene.traverse(o=>{if(o.type==='GridHelper'){o.material.transparent=true;o.material.opacity=.22;}});buildSolverView(model,solution); const bounds=new THREE.Box3().setFromObject(model);controls.target.copy(bounds.getCenter(new THREE.Vector3()));return; }
+    if(solution?.nodes?.length) { const grid=api.current.grid;grid.material.transparent=true;grid.material.opacity=dark?.12:.22;grid.material.color.set(dark?'#516e84':'#ffffff');buildSolverView(model,solution); const bounds=new THREE.Box3().setFromObject(model);controls.target.copy(bounds.getCenter(new THREE.Vector3()));return; }
     if(rounds[0].rowMode) {
       buildRows(model,rounds,10/gauge,10/rowGauge,view);
       model.scale.set(widthScale,heightScale,widthScale);
@@ -154,8 +160,8 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const { model } = api.current;
     const previous = model.children.find(child => child.userData.activePointer);
     if (previous) { disposeObject(previous); model.remove(previous); }
-    const worked = new THREE.Color(solution?'#008451':'#53aa99'), active = new THREE.Color('#f27634');
-    for(const mesh of model.children)if(mesh.userData.fabricSurface)updateSurfaceProgress(mesh,currentRound,currentStitch);
+    const worked = new THREE.Color(solution?(dark?'#39d99c':'#008451'):'#53aa99'), active = new THREE.Color('#f27634');
+    for(const mesh of model.children)if(mesh.userData.fabricSurface)updateSurfaceProgress(mesh,currentRound,currentStitch,dark);
     for (const mesh of model.children) if (mesh.isInstancedMesh) {
       const round = mesh.userData.roundIndex, base = new THREE.Color(rounds[round]?.color || color);
       for (let n = 0; n < mesh.count; n++) mesh.setColorAt(n, round < currentRound || (round === currentRound && n < currentStitch) ? worked : round === currentRound && n === currentStitch ? active : base);
@@ -163,7 +169,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     }
     for (const mesh of model.children) if (mesh.isLineSegments && mesh.geometry.userData.owners) {
       if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex<=currentRound ? .95 : .4;}
-      const ri=mesh.userData.roundIndex, base=solution?new THREE.Color('#7851b5'):new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
+      const ri=mesh.userData.roundIndex, base=solution?new THREE.Color(dark?'#b29adb':'#7851b5'):new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
       mesh.geometry.userData.owners.forEach((n,i)=>{
         const tint=ri<currentRound || (ri===currentRound && n<currentStitch)?worked:ri===currentRound && n>=currentStitch&&n<currentStitch+activeOutputCount?active:base;
         attribute.setXYZ(i,tint.r,tint.g,tint.b);
@@ -179,7 +185,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       if(model.userData.rowLayout) pointer.position.copy(model.userData.rowLayout[currentRound].points[currentStitch]).add(new THREE.Vector3(0,stitch*.65,0));
       pointer.rotation.z=Math.PI; pointer.renderOrder=10; pointer.userData.activePointer=true; model.add(pointer);
     }
-  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution,activeOutputCount,actionLabel,actionNumber]);
+  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution,activeOutputCount,actionLabel,actionNumber,dark]);
   useEffect(() => {
     if (!api.current) return;
     const { cam, controls } = api.current, h = Math.max(6, rounds.length * 10 / rowGauge * heightScale), d = Math.max(16, h * 2.2, ...rounds.map(r => r.previewCount * 10 / gauge / Math.PI * widthScale * 2.4));

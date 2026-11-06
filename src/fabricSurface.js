@@ -49,8 +49,8 @@ export function fabricSurface(rings){
   return surface;
 }
 
-export function updateSurfaceProgress(surface,round,output){
-  const worked=new THREE.Color('#008451'),remaining=new THREE.Color('#a292c6');
+export function updateSurfaceProgress(surface,round,output,dark=false){
+  const worked=new THREE.Color(dark?'#39b888':'#008451'),remaining=new THREE.Color(dark?'#8f79bd':'#a292c6');
   const attribute=surface.geometry.attributes.color;
   surface.geometry.userData.surfaceOwners.forEach((owner,i)=>{
     const color=owner.round<round||(owner.round===round&&owner.stitch<output)?worked:remaining;

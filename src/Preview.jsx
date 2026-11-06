@@ -1,6 +1,7 @@
 import { buildSolverView } from './solverView.js';
 import { highlightStitch, disposeObject } from './stitchHighlight.js';
 import {stitchDescription} from './stitchDescription.js';
+import {updateSurfaceProgress} from './fabricSurface.js';
 import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -154,6 +155,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const previous = model.children.find(child => child.userData.activePointer);
     if (previous) { disposeObject(previous); model.remove(previous); }
     const worked = new THREE.Color(solution?'#008451':'#53aa99'), active = new THREE.Color('#f27634');
+    for(const mesh of model.children)if(mesh.userData.fabricSurface)updateSurfaceProgress(mesh,currentRound,currentStitch);
     for (const mesh of model.children) if (mesh.isInstancedMesh) {
       const round = mesh.userData.roundIndex, base = new THREE.Color(rounds[round]?.color || color);
       for (let n = 0; n < mesh.count; n++) mesh.setColorAt(n, round < currentRound || (round === currentRound && n < currentStitch) ? worked : round === currentRound && n === currentStitch ? active : base);

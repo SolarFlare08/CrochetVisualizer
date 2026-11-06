@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStitchGeometry, stitchConnections, createFabricProfile, conformStitchToFabric } from './stitchGeometry';
 
-export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber, dark=false, surfaceOpacity=.32, hideFutureRounds=false }) {
+export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber, dark=false, surfaceOpacity=.32, hideFutureRounds=false, palette }) {
   const host = useRef(null), api = useRef(null);
   useEffect(() => {
     const el = host.current;
@@ -35,10 +35,10 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
   const previousSnapshot = useRef(snapshotRequest);
   useEffect(()=>{
     if(!api.current)return;
-    const {renderer,scene,grid}=api.current,background=dark?'#141e28':'#f3f2ed';
+    const {renderer,scene,grid}=api.current,background=palette?.canvas||(dark?'#141e28':'#f3f2ed');
     renderer.setClearColor(background,1);scene.fog.color.set(background);
-    grid.material.transparent=true;grid.material.opacity=dark?.12:.22;grid.material.color.set(dark?'#516e84':'#ffffff');
-  },[dark]);
+    grid.material.transparent=true;grid.material.opacity=dark?.12:.22;grid.material.color.set(palette?.grid||(dark?'#516e84':'#ffffff'));
+  },[dark,palette]);
   useEffect(() => {
     if (snapshotRequest === previousSnapshot.current) return;
     previousSnapshot.current = snapshotRequest;

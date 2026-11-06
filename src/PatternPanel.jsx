@@ -1,5 +1,5 @@
 import React,{useState} from 'react';
-import {FileText,ClipboardPaste,CheckCircle2,AlertCircle,ChevronRight} from 'lucide-react';
+import {FileText,ClipboardPaste,CheckCircle2,AlertCircle,ChevronRight,Orbit,FlaskConical} from 'lucide-react';
 import PatternHistoryControls from './PatternHistoryControls';
 import AIFormatter from './AIFormatter';
 import {SAMPLE} from './pattern';
@@ -10,7 +10,7 @@ export default function PatternPanel({history,parsed,allowed}){
   const [tab,setTab]=useState('edit'),[notes,setNotes]=useState([]);
   const {text,paste,setPaste}=history;
   function apply(value){history.edit(value);setTab('edit');}
-  return <aside className="panel user-pattern pattern-panel-clean">
+  return <aside className="panel user-pattern pattern-panel-clean"><div className="workspace-identity"><a href="?" aria-label="Loop and Orbit"><Orbit size={23}/><strong>loop <i>&</i> orbit</strong></a><a className="workspace-lab-link" href="?mode=lab#projects" aria-label="Experimental studio" title="Experimental studio"><FlaskConical size={16}/></a></div>
     <div className="pattern-panel-title"><div><FileText size={17}/><h2>Your pattern</h2></div><span className="pattern-terms">US TERMS</span></div>
     <div className="pattern-panel-tabs" role="tablist" aria-label="Pattern tools"><button id="edit-pattern-tab" role="tab" aria-selected={tab==='edit'} aria-controls="edit-pattern-panel" onClick={()=>setTab('edit')}><FileText size={14}/> Pattern</button><button id="paste-pattern-tab" role="tab" aria-selected={tab==='paste'} aria-controls="paste-pattern-panel" onClick={()=>setTab('paste')}><ClipboardPaste size={14}/> Add pattern</button></div>
     <div id="edit-pattern-panel" role="tabpanel" aria-labelledby="edit-pattern-tab" hidden={tab!=='edit'} className="pattern-edit-tab">

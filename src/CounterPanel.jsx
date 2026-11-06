@@ -2,7 +2,7 @@ import React from 'react';
 import {Check,Minus,Plus,RotateCcw,CheckCircle2} from 'lucide-react';
 import './counter.css';
 
-export default function CounterPanel({round,roundIndex,totalRounds,stitch,done,enabled,onStep,onResume,onComplete,onReset,message,actionCount,actionLabel}){
+export default function CounterPanel({round,roundIndex,totalRounds,stitch,done,enabled,onStep,onResume,onComplete,onReset,message,actionCount,actionLabel,backup}){
   const total=actionCount??round?.count??0,percent=total?Math.min(100,stitch/total*100):0;
   return <aside className="panel user-counter counter-panel">
     <div className="counter-heading"><h2>On your hook</h2><span className="counter-round">Round {round?.number??'—'} <span>/ {totalRounds}</span></span></div>
@@ -15,6 +15,7 @@ export default function CounterPanel({round,roundIndex,totalRounds,stitch,done,e
     <div className="stitch-strip" aria-label="Stitches in current round">{Array.from({length:Math.min(total,240)},(_,n)=><button key={n} disabled={!enabled} aria-label={`Resume before stitch ${n+1}`} aria-current={n===stitch?'step':undefined} className={n<stitch?'worked':n===stitch?'next':''} onClick={()=>onResume(n)}>{n<stitch?<Check size={12}/>:n+1}</button>)}</div>
     <button disabled={!enabled||done} className="complete-button" onClick={onComplete}><Check size={16}/>{done?'Project complete':'Complete round'}</button>
     <button className="counter-reset" onClick={onReset}><RotateCcw size={13}/> Reset progress</button>
+    {backup}
     <footer className="counter-save"><span role="status"><CheckCircle2 size={13}/>{message}</span><p>Space adds a stitch outside text fields and controls. Your place saves automatically.</p></footer>
   </aside>;
 }

@@ -18,7 +18,29 @@ export function fabricSurface(rings){
     const first=rings[0],center=first.reduce((s,p)=>s.add(p),new THREE.Vector3()).divideScalar(first.length);
     join(first.map(p=>center.clone().lerp(p,.18)),first,0);
   }
-  for(let i=1;i<rings.length;i++)join(rings[i-1],rings[i],i);
+  // Interpolate along the fabric as well as around it. Shared tangents at
+  // course boundaries round off the shoulder rather than forming hard creases.
+  if(rings.length>1&&rings.every(r=>r.length>=3)){
+    const count=Math.min(128,Math.max(24,...rings.map(r=>r.length*2)));
+    const sample=(ring,f)=>{
+      const pos=f*ring.length,i=Math.floor(pos);
+      return ring[i%ring.length].clone().lerp(ring[(i+1)%ring.length],pos-i);
+    };
+    const curves=Array.from({length:count},(_,n)=>new THREE.CatmullRomCurve3(rings.map(r=>sample(r,n/count)),false,'catmullrom',.25));
+    const slice=t=>curves.map(curve=>curve.getPoint(t));
+    for(let ri=1;ri<rings.length;ri++){
+      let previous=slice((ri-1)/(rings.length-1));
+      for(let step=1;step<=6;step++){
+        const next=slice((ri-1+step/6)/(rings.length-1));
+        for(let n=0;n<count;n++){
+          const k=(n+1)%count,owner=Math.min(rings[ri].length-1,Math.floor((n+.5)/count*rings[ri].length));
+          triangle(previous[n],next[n],previous[k],ri,owner);
+          triangle(previous[k],next[n],next[k],ri,owner);
+        }
+        previous=next;
+      }
+    }
+  }else for(let i=1;i<rings.length;i++)join(rings[i-1],rings[i],i);
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
   geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(vertices.length).fill(1),3));
   geometry.userData.surfaceOwners=owners;

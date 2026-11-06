@@ -18,6 +18,17 @@ test('equal-count courses still build height',()=>{
   const average=ring=>ring.reduce((n,id)=>n+solution.nodes[id].y,0)/ring.length;
   assert.ok(average(solution.rings.at(-1))-average(solution.rings[2])>.5);
 });
+test('decreases gain height while contracting instead of forming horizontal shelves',()=>{
+  const parsed=parsePattern(pattern+'\nR4-6: sc around (18)\nR7: [sc, dec] x6 (12)\nR8: sc around (12)\nR9: dec x6 (6)');
+  assert.deepEqual(parsed.issues,[]);
+  const solution=solveFabric(parsed.rounds);
+  const mean=(ri,fn)=>solution.rings[ri].reduce((sum,id)=>sum+fn(solution.nodes[id]),0)/solution.rings[ri].length;
+  for(const ri of [6,8]){
+    assert.ok(mean(ri,n=>n.y)-mean(ri-1,n=>n.y)>.2);
+    assert.ok(mean(ri,n=>Math.hypot(n.x,n.z))<mean(ri-1,n=>Math.hypot(n.x,n.z)));
+  }
+  assert.ok(solution.nodes.every(n=>Number.isFinite(n.x+n.y+n.z)));
+});
 test('increases are one work action with two fabric outputs',()=>{
   const rounds=parsePattern(pattern).rounds;
   assert.deepEqual(rounds.map(r=>workActions(r).length),[6,6,12]);

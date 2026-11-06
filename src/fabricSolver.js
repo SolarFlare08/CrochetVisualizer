@@ -14,7 +14,10 @@ export function solveFabric(rounds, width=.5, rise=.42) {
     // every diagonal root link to the shorter vertical row height.
     const flat=ri===0?count===6:flatRounds[ri-1]&&count===(rounds[ri-1].count+6);
     flatRounds.push(flat);
-    y+=ri&&!flat?Math.sqrt(Math.max(rise*rise-dr*dr,rise*rise*.015)):0;
+    // A decrease also builds a new course vertically. Subtracting the whole
+    // radial contraction from row height collapsed it into a horizontal shelf.
+    const decreasing=ri>0&&count<rounds[ri-1].count;
+    y+=ri&&!flat?(decreasing?rise:Math.sqrt(Math.max(rise*rise-dr*dr,rise*rise*.015))):0;
     const ring=[];
     for(let n=0;n<count;n++) {
       const a=n/count*Math.PI*2;
@@ -49,6 +52,14 @@ export function solveFabric(rounds, width=.5, rise=.42) {
     }
     // Weak regularization avoids arbitrary collapse of an underconstrained surface.
     nodes.forEach((n,i)=>{n.x+=(initial[i].x-n.x)*.003;n.y+=(initial[i].y-n.y)*.003;n.z+=(initial[i].z-n.z)*.003;});
+    // Keep each course's mean height near its construction height while
+    // allowing individual stitch positions to relax around that course.
+    rings.forEach(ring=>{
+      if(!ring.length)return;
+      const mean=ring.reduce((sum,id)=>sum+nodes[id].y,0)/ring.length;
+      const target=initial[ring[0]].y,shift=(target-mean)*.2;
+      ring.forEach(id=>{nodes[id].y+=shift;});
+    });
   }
   const strain=edges.length?edges.reduce((sum,e)=>{const a=nodes[e.a],b=nodes[e.b];return sum+Math.abs(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)-e.rest)/e.rest;},0)/edges.length:0;
   return {nodes,edges,rings,strain,iterations:240};

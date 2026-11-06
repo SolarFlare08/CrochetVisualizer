@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scArm} from './stitchSymbols.js';
 export function buildSolverView(model,solution) {
   const {nodes,edges}=solution;
   const minY=Math.min(...nodes.map(n=>n.y));
@@ -8,7 +9,9 @@ export function buildSolverView(model,solution) {
     const vertices=[],owners=[];
     const segment=(a,b,owner)=>{vertices.push(...a.toArray(),...b.toArray());owners.push(owner,owner);};
     edges.filter(e=>nodes[e.owner].round===ri).forEach(e=>{
-      const a=points[e.a],b=points[e.b],owner=nodes[e.owner].stitch;segment(a,b,owner);
+      const a=points[e.a],b=points[e.b],owner=nodes[e.owner].stitch;
+      if(e.kind==='wale')scArm(a,b).forEach(([start,end])=>segment(start,end,owner));
+      else segment(a,b,owner);
       if(e.kind==='course') {
         const direction=b.clone().sub(a).normalize(),tip=a.clone().lerp(b,.7),side=new THREE.Vector3(-direction.z,0,direction.x).multiplyScalar(.055);
         const back=tip.clone().addScaledVector(direction,-.12);

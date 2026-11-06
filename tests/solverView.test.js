@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {buildSolverView} from '../src/solverView.js';
 import {solveFabric} from '../src/fabricSolver.js';
 import {parsePattern} from '../src/pattern.js';
-import {updateSurfaceProgress} from '../src/fabricSurface.js';
+import {updateSurfaceProgress,setSurfaceVisibility} from '../src/fabricSurface.js';
 
 test('sketch draws MR single crochet stems and bars without perimeter lines',()=>{
   const solution=solveFabric(parsePattern('R1: 6 sc in MR (6)\nR2: inc x6 (12)').rounds);
@@ -25,5 +25,14 @@ test('sketch draws MR single crochet stems and bars without perimeter lines',()=
   assert.notEqual(colors.getX(completed),colors.getX(pending));
   updateSurfaceProgress(surface,0,0);
   assert.equal(colors.getX(completed),colors.getX(pending));
+  setSurfaceVisibility(surface,0,true,.6);
+  assert.equal(surface.material.opacity,.6);
+  const visibleOwners=owners.slice(0,surface.geometry.drawRange.count);
+  assert.ok(visibleOwners.length>0&&visibleOwners.length<owners.length);
+  assert.ok(visibleOwners.every(o=>o.round===0));
+  setSurfaceVisibility(surface,0,false,0);
+  assert.equal(surface.visible,false);assert.equal(surface.geometry.drawRange.count,owners.length);
+  setSurfaceVisibility(surface,1,true,1);
+  assert.equal(surface.visible,true);assert.equal(surface.geometry.drawRange.count,owners.length);
   model.children.forEach(child=>{child.geometry.dispose();child.material.dispose();});
 });

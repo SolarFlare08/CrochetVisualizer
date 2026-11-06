@@ -58,3 +58,11 @@ export function updateSurfaceProgress(surface,round,output,dark=false){
   });
   attribute.needsUpdate=true;
 }
+
+export function setSurfaceVisibility(surface,round,hideFuture,opacity){
+  surface.material.opacity=opacity;
+  surface.visible=opacity>0;
+  const owners=surface.geometry.userData.surfaceOwners;
+  const end=hideFuture?owners.findIndex(owner=>owner.round>round):-1;
+  surface.geometry.setDrawRange(0,end<0?owners.length:end);
+}

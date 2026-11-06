@@ -1,14 +1,14 @@
 import { buildSolverView } from './solverView.js';
 import { highlightStitch, disposeObject } from './stitchHighlight.js';
 import {stitchDescription} from './stitchDescription.js';
-import {updateSurfaceProgress} from './fabricSurface.js';
+import {updateSurfaceProgress,setSurfaceVisibility} from './fabricSurface.js';
 import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStitchGeometry, stitchConnections, createFabricProfile, conformStitchToFabric } from './stitchGeometry';
 
-export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber, dark=false }) {
+export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber, dark=false, surfaceOpacity=.32, hideFutureRounds=false }) {
   const host = useRef(null), api = useRef(null);
   useEffect(() => {
     const el = host.current;
@@ -161,13 +161,15 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const previous = model.children.find(child => child.userData.activePointer);
     if (previous) { disposeObject(previous); model.remove(previous); }
     const worked = new THREE.Color(solution?(dark?'#39d99c':'#008451'):'#53aa99'), active = new THREE.Color('#f27634');
-    for(const mesh of model.children)if(mesh.userData.fabricSurface)updateSurfaceProgress(mesh,currentRound,currentStitch,dark);
+    for(const mesh of model.children)if(mesh.userData.fabricSurface){updateSurfaceProgress(mesh,currentRound,currentStitch,dark);setSurfaceVisibility(mesh,currentRound,hideFutureRounds,surfaceOpacity);}
     for (const mesh of model.children) if (mesh.isInstancedMesh) {
+      mesh.visible=!hideFutureRounds||mesh.userData.roundIndex<=currentRound;
       const round = mesh.userData.roundIndex, base = new THREE.Color(rounds[round]?.color || color);
       for (let n = 0; n < mesh.count; n++) mesh.setColorAt(n, round < currentRound || (round === currentRound && n < currentStitch) ? worked : round === currentRound && n === currentStitch ? active : base);
       mesh.instanceColor.needsUpdate = true;
     }
     for (const mesh of model.children) if (mesh.isLineSegments && mesh.geometry.userData.owners) {
+      mesh.visible=!hideFutureRounds||mesh.userData.roundIndex<=currentRound;
       if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex<=currentRound ? .95 : .4;}
       const ri=mesh.userData.roundIndex, base=solution?new THREE.Color(dark?'#b29adb':'#7851b5'):new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
       mesh.geometry.userData.owners.forEach((n,i)=>{
@@ -185,13 +187,13 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       if(model.userData.rowLayout) pointer.position.copy(model.userData.rowLayout[currentRound].points[currentStitch]).add(new THREE.Vector3(0,stitch*.65,0));
       pointer.rotation.z=Math.PI; pointer.renderOrder=10; pointer.userData.activePointer=true; model.add(pointer);
     }
-  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution,activeOutputCount,actionLabel,actionNumber,dark]);
+  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution,activeOutputCount,actionLabel,actionNumber,dark,hideFutureRounds,surfaceOpacity]);
   useEffect(() => {
     if (!api.current) return;
     const { cam, controls } = api.current, h = Math.max(6, rounds.length * 10 / rowGauge * heightScale), d = Math.max(16, h * 2.2, ...rounds.map(r => r.previewCount * 10 / gauge / Math.PI * widthScale * 2.4));
     const y = controls.target.y;
     if(solution?.nodes?.length){
-      const bounds=new THREE.Box3().setFromPoints(api.current.model.userData.rowLayout.flatMap(r=>r.points));
+      const bounds=new THREE.Box3().setFromPoints(api.current.model.userData.rowLayout.slice(0,hideFutureRounds?currentRound+1:undefined).flatMap(r=>r.points));
       const center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());
       const vFov=THREE.MathUtils.degToRad(cam.fov),hFov=2*Math.atan(Math.tan(vFov/2)*cam.aspect);
       const distance=Math.max(size.length()*.5/Math.sin(Math.min(vFov,hFov)/2)*1.35,2);
@@ -203,7 +205,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     else if (camera === 'front') cam.position.set(0, y + .1, d);
     else cam.position.set(d * .65, y + d * .35, d * .8);
     controls.update();
-  }, [camera, resetCamera, view, rounds, gauge, rowGauge, widthScale, heightScale,solution]);
+  }, [camera, resetCamera, view, rounds, gauge, rowGauge, widthScale, heightScale,solution,hideFutureRounds,hideFutureRounds?currentRound:-1]);
   useEffect(() => {
     if (!api.current || camera !== 'stitch' || !rounds[currentRound]) return;
     const {cam,controls}=api.current, round=rounds[currentRound];
@@ -212,6 +214,6 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const radius = round.previewCount*10/gauge/(Math.PI*2)*widthScale;
     const y=(currentRound+.7)*10/rowGauge*heightScale, distance=Math.max(5,radius+4);
     controls.target.set(0,y,0); cam.position.set(Math.sin(a)*distance,y+2,Math.cos(a)*distance); controls.update();
-  },[camera,currentRound,currentStitch,rounds,gauge,rowGauge,widthScale,heightScale,resetCamera]);
+  },[camera,currentRound,currentStitch,rounds,gauge,rowGauge,widthScale,heightScale,resetCamera,hideFutureRounds]);
   return <div className="three-host" ref={host} aria-label="Interactive 3D crochet preview. Drag to rotate, scroll to zoom." />;
 }

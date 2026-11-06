@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {scArm} from './stitchSymbols.js';
+import {scArm,magicRingArm} from './stitchSymbols.js';
 export function buildSolverView(model,solution) {
   const {nodes,edges}=solution;
   const minY=Math.min(...nodes.map(n=>n.y));
@@ -8,10 +8,13 @@ export function buildSolverView(model,solution) {
   rounds.forEach(ri=>{
     const vertices=[],owners=[];
     const segment=(a,b,owner)=>{vertices.push(...a.toArray(),...b.toArray());owners.push(owner,owner);};
-    edges.filter(e=>nodes[e.owner].round===ri).forEach(e=>{
+    if(ri===0){
+      const first=solution.rings[0].map(id=>points[id]);
+      first.forEach((_,n)=>magicRingArm(first,n).forEach(([a,b])=>segment(a,b,n)));
+    }
+    edges.filter(e=>e.kind==='wale'&&nodes[e.owner].round===ri).forEach(e=>{
       const a=points[e.a],b=points[e.b],owner=nodes[e.owner].stitch;
       if(e.kind==='wale')scArm(a,b).forEach(([start,end])=>segment(start,end,owner));
-      else segment(a,b,owner);
     });
     const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));g.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(vertices.length),3));g.userData.owners=owners;
     const line=new THREE.LineSegments(g,new THREE.LineBasicMaterial({vertexColors:true}));line.userData.roundIndex=ri;model.add(line);

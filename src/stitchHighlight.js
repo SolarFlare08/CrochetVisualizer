@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {scArm} from './stitchSymbols.js';
+import {scArm,magicRingArm} from './stitchSymbols.js';
 
 export function highlightStitch(model,solution,ri,si,number,stitchType='',outputCount=1,actionNumber){
   const id=solution.rings[ri]?.[si],point=model.userData.rowLayout?.[ri]?.points[si];
@@ -18,12 +18,12 @@ export function highlightStitch(model,solution,ri,si,number,stitchType='',output
   }
   const roots=solution.edges.filter(e=>e.owner===id&&e.kind==='wale').map(e=>e.a);
   const siblings=solution.edges.filter(e=>e.kind==='wale'&&roots.includes(e.a)&&solution.nodes[e.owner].round===ri);
-  const selected=solution.edges.filter(e=>e.owner===id);
+  const selected=solution.edges.filter(e=>e.owner===id&&e.kind==='wale');
   const increase=siblings.length>roots.length&&roots.length===1;
-  const visible=increase?[...new Set([...selected,...siblings])]:selected;
+  const visible=ri===0?[{owner:id,foundation:true}]:increase?[...new Set([...selected,...siblings])]:selected;
   visible.forEach(e=>{
     const active=solution.rings[ri].slice(si,si+outputCount).includes(e.owner);
-    const segments=e.kind==='wale'?scArm(points[e.a],points[e.b]):[[points[e.a],points[e.b]]];
+    const segments=e.foundation?magicRingArm(ringPoints,si):scArm(points[e.a],points[e.b]);
     segments.forEach(([a,b])=>{
       const delta=b.clone().sub(a),length=delta.length();if(length<1e-6)return;
       const tint=material.clone();if(!active)tint.color.set('#d69b76');

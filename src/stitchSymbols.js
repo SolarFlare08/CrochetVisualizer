@@ -1,5 +1,13 @@
 import * as THREE from 'three';
 
+export function magicRingArm(points,index){
+  const center=points.reduce((sum,p)=>sum.add(p),new THREE.Vector3()).divideScalar(points.length);
+  const tip=points[index];
+  // Leave the magic-ring opening visible; each SC radiates from its edge.
+  const root=center.lerp(tip,.18);
+  return scArm(root,tip);
+}
+
 // The arm runs from its actual root to its output stitch. The transverse
 // bar identifies single crochet, including both arms of an increase.
 export function scArm(a,b){

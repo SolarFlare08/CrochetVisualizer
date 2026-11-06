@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createStitchGeometry, stitchConnections, createFabricProfile, conformStitchToFabric } from './stitchGeometry';
 
-export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution }) {
+export default function Preview({ rounds, color, gauge, rowGauge, widthScale, heightScale, currentRound, currentStitch = 0, snapshotRequest = 0, view, camera, resetCamera, cutaway, solution, activeOutputCount=1, actionLabel, actionNumber }) {
   const host = useRef(null), api = useRef(null);
   useEffect(() => {
     const el = host.current;
@@ -163,12 +163,12 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex<=currentRound ? .95 : .4;}
       const ri=mesh.userData.roundIndex, base=solution?new THREE.Color('#7851b5'):new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
       mesh.geometry.userData.owners.forEach((n,i)=>{
-        const tint=ri<currentRound || (ri===currentRound && n<currentStitch)?worked:ri===currentRound && n===currentStitch?active:base;
+        const tint=ri<currentRound || (ri===currentRound && n<currentStitch)?worked:ri===currentRound && n>=currentStitch&&n<currentStitch+activeOutputCount?active:base;
         attribute.setXYZ(i,tint.r,tint.g,tint.b);
       }); attribute.needsUpdate=true;
     }
     const round = rounds[currentRound];
-    if(solution){if(round?.valid&&currentStitch<round.count)highlightStitch(model,solution,currentRound,currentStitch,round.number,stitchDescription(round,currentStitch));return;}
+    if(solution){if(round?.valid&&currentStitch<round.count)highlightStitch(model,solution,currentRound,currentStitch,round.number,actionLabel||stitchDescription(round,currentStitch),activeOutputCount,actionNumber);return;}
     if (round?.valid && currentStitch < round.previewCount) {
       const stitch = 10/gauge, rise = 10/rowGauge, a = currentStitch / round.previewCount * Math.PI*2;
       const radius = round.previewCount*stitch/(Math.PI*2) + stitch*.65;
@@ -177,7 +177,7 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
       if(model.userData.rowLayout) pointer.position.copy(model.userData.rowLayout[currentRound].points[currentStitch]).add(new THREE.Vector3(0,stitch*.65,0));
       pointer.rotation.z=Math.PI; pointer.renderOrder=10; pointer.userData.activePointer=true; model.add(pointer);
     }
-  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution]);
+  }, [rounds,color,gauge,rowGauge,widthScale,heightScale,currentRound,currentStitch,cutaway,view,solution,activeOutputCount,actionLabel,actionNumber]);
   useEffect(() => {
     if (!api.current) return;
     const { cam, controls } = api.current, h = Math.max(6, rounds.length * 10 / rowGauge * heightScale), d = Math.max(16, h * 2.2, ...rounds.map(r => r.previewCount * 10 / gauge / Math.PI * widthScale * 2.4));

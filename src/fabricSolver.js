@@ -4,12 +4,17 @@ import { operation } from './language.js';
 // No stuffing pressure or gravity: this estimates the fabric's resting construction.
 export function solveFabric(rounds, width=.5, rise=.42) {
   if(rounds.reduce((n,r)=>n+(r.count||0),0)>4000) return {error:'This solver supports up to 4,000 stitches. Split this pattern into smaller pieces.'};
-  const nodes=[], rings=[], edges=[];
+  const nodes=[], rings=[], edges=[], flatRounds=[];
   let previousRadius=0, y=0;
   rounds.forEach((round,ri)=>{
     const count=round.count||0, radius=count*width/(2*Math.PI);
     const dr=radius-previousRadius;
-    y+=ri?Math.sqrt(Math.max(rise*rise-dr*dr,rise*rise*.015)):0;
+    // Six evenly distributed increases add one radial stitch-width per course
+    // in a calibrated SC disk. Preserve that planar metric rather than forcing
+    // every diagonal root link to the shorter vertical row height.
+    const flat=ri===0?count===6:flatRounds[ri-1]&&count===(rounds[ri-1].count+6);
+    flatRounds.push(flat);
+    y+=ri&&!flat?Math.sqrt(Math.max(rise*rise-dr*dr,rise*rise*.015)):0;
     const ring=[];
     for(let n=0;n<count;n++) {
       const a=n/count*Math.PI*2;
@@ -31,6 +36,10 @@ export function solveFabric(rounds, width=.5, rise=.42) {
     previousRadius=radius;
   });
   const initial=nodes.map(n=>({...n}));
+  for(const edge of edges)if(flatRounds[nodes[edge.owner].round]){
+    const a=initial[edge.a],b=initial[edge.b];
+    edge.rest=Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+  }
   for(let iteration=0;iteration<240;iteration++) {
     for(const edge of edges) {
       const a=nodes[edge.a],b=nodes[edge.b],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;

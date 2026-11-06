@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {scArm} from './stitchSymbols.js';
 
-export function highlightStitch(model,solution,ri,si,number){
+export function highlightStitch(model,solution,ri,si,number,stitchType=''){
   const id=solution.rings[ri]?.[si],point=model.userData.rowLayout?.[ri]?.points[si];
   if(id===undefined||!point)return;
   const group=new THREE.Group();group.userData.activePointer=true;
@@ -23,8 +23,8 @@ export function highlightStitch(model,solution,ri,si,number){
       const tube=new THREE.Mesh(new THREE.CylinderGeometry(active?.022:.014,active?.022:.014,length,8),tint);tube.position.copy(a).lerp(b,.5);tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());tube.renderOrder=20;group.add(tube);
     });
   });
-  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=112;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.beginPath();ctx.roundRect(4,4,504,104,24);ctx.fill();ctx.strokeStyle='#ef662e';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#b94313';ctx.font='600 32px sans-serif';ctx.textAlign='center';ctx.fillText(`NEXT · R${number} / ST ${si+1}`,256,68);
-  const texture=new THREE.CanvasTexture(canvas),label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false,depthWrite:false}));label.position.copy(point).add(new THREE.Vector3(0,.46,0));label.scale.set(1.55,.34,1);label.renderOrder=22;group.add(label);model.add(group);
+  const canvas=document.createElement('canvas');canvas.width=640;canvas.height=112;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.beginPath();ctx.roundRect(4,4,632,104,24);ctx.fill();ctx.strokeStyle='#ef662e';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#b94313';ctx.font='600 28px sans-serif';ctx.textAlign='center';ctx.fillText(`NEXT · ${stitchType} · R${number} / ST ${si+1}`,320,68);
+  const texture=new THREE.CanvasTexture(canvas),label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false,depthWrite:false}));label.position.copy(point).add(new THREE.Vector3(0,.46,0));label.scale.set(1.95,.34,1);label.renderOrder=22;group.add(label);model.add(group);
 }
 export function disposeObject(object){object.traverse(o=>{o.geometry?.dispose();if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{m.map?.dispose();m.dispose();});});}

@@ -1,5 +1,6 @@
 import { buildSolverView } from './solverView.js';
 import { highlightStitch, disposeObject } from './stitchHighlight.js';
+import {stitchDescription} from './stitchDescription.js';
 import { buildRows } from './rowShape.js';
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
@@ -152,22 +153,22 @@ export default function Preview({ rounds, color, gauge, rowGauge, widthScale, he
     const { model } = api.current;
     const previous = model.children.find(child => child.userData.activePointer);
     if (previous) { disposeObject(previous); model.remove(previous); }
-    const worked = new THREE.Color('#53aa99'), active = new THREE.Color('#f27634');
+    const worked = new THREE.Color(solution?'#008451':'#53aa99'), active = new THREE.Color('#f27634');
     for (const mesh of model.children) if (mesh.isInstancedMesh) {
       const round = mesh.userData.roundIndex, base = new THREE.Color(rounds[round]?.color || color);
       for (let n = 0; n < mesh.count; n++) mesh.setColorAt(n, round < currentRound || (round === currentRound && n < currentStitch) ? worked : round === currentRound && n === currentStitch ? active : base);
       mesh.instanceColor.needsUpdate = true;
     }
     for (const mesh of model.children) if (mesh.isLineSegments && mesh.geometry.userData.owners) {
-      if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex===currentRound?1:.28;}
-      const ri=mesh.userData.roundIndex, base=new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
+      if(solution){mesh.material.transparent=true;mesh.material.opacity=mesh.userData.roundIndex<=currentRound ? .95 : .4;}
+      const ri=mesh.userData.roundIndex, base=solution?new THREE.Color('#7851b5'):new THREE.Color(rounds[ri]?.color || color).multiplyScalar(.58), attribute=mesh.geometry.attributes.color;
       mesh.geometry.userData.owners.forEach((n,i)=>{
         const tint=ri<currentRound || (ri===currentRound && n<currentStitch)?worked:ri===currentRound && n===currentStitch?active:base;
         attribute.setXYZ(i,tint.r,tint.g,tint.b);
       }); attribute.needsUpdate=true;
     }
     const round = rounds[currentRound];
-    if(solution){if(round?.valid&&currentStitch<round.count)highlightStitch(model,solution,currentRound,currentStitch,round.number);return;}
+    if(solution){if(round?.valid&&currentStitch<round.count)highlightStitch(model,solution,currentRound,currentStitch,round.number,stitchDescription(round,currentStitch));return;}
     if (round?.valid && currentStitch < round.previewCount) {
       const stitch = 10/gauge, rise = 10/rowGauge, a = currentStitch / round.previewCount * Math.PI*2;
       const radius = round.previewCount*stitch/(Math.PI*2) + stitch*.65;
